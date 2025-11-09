@@ -102,8 +102,8 @@ jobs:
           text = path.read_text()
           tag = os.environ["SHA"]
           digest = os.environ["DIGEST"]
-          text = re.sub(r'(^\s*tag:\s*).+$', r'\1' + tag, text, flags=re.MULTILINE)
-          text = re.sub(r'(^\s*digest:\s*).+$', r'\1' + digest, text, flags=re.MULTILINE)
+          text = re.sub(r'(^\s*tag:\s*).+$', r'\g<1>' + tag, text, flags=re.MULTILINE)
+          text = re.sub(r'(^\s*digest:\s*).+$', r'\g<1>' + digest, text, flags=re.MULTILINE)
           path.write_text(text)
           PY
           git add helm/myapp/values.yaml
