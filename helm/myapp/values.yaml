@@ -1,6 +1,9 @@
 replicaCount: 1
 image:
-  repository: localhost:5001/myapp
+  repository: ghcr.io/AbrahamOO/myapp
   tag: latest
 service:
   port: 8000
+
+  # Ensure the following lines are valid YAML
+  # and replace README with clear instructions for GHCR and imagePullSecrets
