@@ -5,5 +5,11 @@ image:
 service:
   port: 8000
 
-  # Ensure the following lines are valid YAML
-  # and replace README with clear instructions for GHCR and imagePullSecrets
+# NOTE: CI will update `image.tag` to an immutable SHA (PR created by workflow).replicaCount: 1
+image:
+  repository: ghcr.io/abrahamoo/myapp
+  tag: latest
+service:
+  port: 8000
+# NOTE: For a secure, reproducible setup we publish images to GHCR via CI
+# and pin the image by SHA in this file (CI will open a PR to update `image.tag`).

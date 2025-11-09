@@ -45,4 +45,4 @@ docker build -t "$IMAGE" "$APP_DIR"
 echo "Loading image into kind cluster '$CLUSTER_NAME'"
 kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
 
-echo "Image loaded into kind. If your Helm values point to $IMAGE, ArgoCD should be able to deploy it from the node-local image store." 
+echo "Image loaded into kind. If your Helm values point to $IMAGE, ArgoCD should be able to deploy it from the node-local image store."
