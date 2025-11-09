@@ -10,9 +10,6 @@ permissions:
   packages: write
   pull-requests: write
 
-env:
-  IMAGE_REPO: ghcr.io/${{ toLower(github.repository_owner) }}/myapp
-
 jobs:
   build-and-push:
     if: ${{ github.actor != 'nektos/act' }}
@@ -24,6 +21,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - id: image-repo
+        name: Derive lowercase image repository
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "value=ghcr.io/${owner}/myapp" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -50,13 +54,13 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.IMAGE_REPO }}:latest
-            ${{ env.IMAGE_REPO }}:${{ steps.get-sha.outputs.sha }}
+            ${{ steps.image-repo.outputs.value }}:latest
+            ${{ steps.image-repo.outputs.value }}:${{ steps.get-sha.outputs.sha }}
 
       - name: Inspect pushed image for digest
         id: inspect
         run: |
-          REF="${{ env.IMAGE_REPO }}:${{ steps.get-sha.outputs.sha }}"
+          REF="${{ steps.image-repo.outputs.value }}:${{ steps.get-sha.outputs.sha }}"
           echo "Inspecting $REF"
           DIGEST=$(docker buildx imagetools inspect "$REF" --format '{{json .}}' | jq -r '.Descriptor.digest')
           if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
