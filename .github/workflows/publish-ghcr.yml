@@ -97,14 +97,14 @@ jobs:
             exit 1
           fi
           python3 - <<'PY'
-            import pathlib, re, os
-            path = pathlib.Path("helm/myapp/values.yaml")
-            text = path.read_text()
-            tag = os.environ["SHA"]
-            digest = os.environ["DIGEST"]
-            text = re.sub(r'(^\s*tag:\s*).+$', r'\1' + tag, text, flags=re.MULTILINE)
-            text = re.sub(r'(^\s*digest:\s*).+$', r'\1' + digest, text, flags=re.MULTILINE)
-            path.write_text(text)
+  import pathlib, re, os
+  path = pathlib.Path("helm/myapp/values.yaml")
+  text = path.read_text()
+  tag = os.environ["SHA"]
+  digest = os.environ["DIGEST"]
+  text = re.sub(r'(^\s*tag:\s*).+$', r'\1' + tag, text, flags=re.MULTILINE)
+  text = re.sub(r'(^\s*digest:\s*).+$', r'\1' + digest, text, flags=re.MULTILINE)
+  path.write_text(text)
           PY
           git add helm/myapp/values.yaml
           git commit -m "ci: update image metadata to ${DIGEST} [skip ci]" || echo "no changes to commit"
