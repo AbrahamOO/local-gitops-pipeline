@@ -1,6 +1,6 @@
 replicaCount: 1
 image:
-  repository: ghcr.io/AbrahamOO/myapp
+  repository: ghcr.io/abrahamoo/myapp
   tag: latest
 service:
   port: 8000
