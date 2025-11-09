@@ -1,0 +1,14 @@
+name: publish-ghcr (tmp backup)
+
+# Backup of publish-ghcr.yml.tmp
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+# (content snapshot saved as backup)
