@@ -1,9 +1,19 @@
 replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
 image:
   repository: ghcr.io/abrahamoo/myapp
   tag: latest
-  # digest: "sha256:..."  # CI will write this when available
+  pullPolicy: IfNotPresent
+  digest: ""
+
 service:
+  type: ClusterIP
   port: 8000
-# NOTE: For a secure, reproducible setup we publish images to GHCR via CI
-# and pin the image by SHA/digest in this file (CI will open a PR to update values).
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

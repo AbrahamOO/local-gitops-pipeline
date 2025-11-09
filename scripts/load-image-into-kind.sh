@@ -1,48 +1,69 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# make script executable
-# Usage: ./scripts/load-image-into-kind.sh [kind-cluster-name]
-# Default cluster name: gitops-lab-control-plane
 
-CLUSTER_NAME=${1:-gitops-lab-control-plane}
-
+CLUSTER_NAME=${KIND_CLUSTER:-${1:-gitops-lab}}
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 VALUES_FILE="$ROOT_DIR/helm/myapp/values.yaml"
 APP_DIR="$ROOT_DIR/app"
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "docker not found in PATH" >&2
-  exit 2
-fi
-if ! command -v kind >/dev/null 2>&1; then
-  echo "kind not found in PATH" >&2
-  exit 2
-fi
+log() {
+  echo "[load-image] $*"
+}
 
-if [ ! -f "$VALUES_FILE" ]; then
+require() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "'$1' is required but not installed" >&2
+    exit 1
+  fi
+}
+
+require docker
+require kind
+
+if [[ ! -f "$VALUES_FILE" ]]; then
   echo "values file not found: $VALUES_FILE" >&2
-  exit 2
+  exit 1
 fi
 
-# Extract repository and tag from values.yaml
-REPO=$(sed -n 's/^\s*repository:\s*\(.*\)/\1/p' "$VALUES_FILE" | head -n1 | tr -d '"')
-TAG=$(sed -n 's/^\s*tag:\s*\(.*\)/\1/p' "$VALUES_FILE" | head -n1 | tr -d '"')
+read_value() {
+  local key=$1
+  awk -v look="$key" '
+    /^image:/ {inimage=1; next}
+    inimage && $1 == look {print $2; exit}
+    inimage && NF == 0 {inimage=0}
+  ' "$VALUES_FILE" | tr -d '"'
+}
 
-if [ -z "$REPO" ]; then
-  echo "Could not determine image.repository from $VALUES_FILE" >&2
-  exit 2
+REPO=$(read_value "repository:")
+TAG=$(read_value "tag:")
+DIGEST=$(read_value "digest:")
+
+if [[ -z "$REPO" ]]; then
+  echo "Failed to parse image.repository from $VALUES_FILE" >&2
+  exit 1
 fi
-if [ -z "$TAG" ]; then
-  echo "Could not determine image.tag from $VALUES_FILE; defaulting to 'latest'" >&2
+if [[ -z "$TAG" ]]; then
   TAG=latest
 fi
+if [[ -n "$DIGEST" && "$DIGEST" != "\"\"" ]]; then
+  cat <<MSG >&2
+image.digest is set to '$DIGEST'. Helm will prefer the digest over the tag, so loading a local image will not have any effect.
+Clear the digest field (set it to \"\") or override it with HELM values before rerunning this script.
+MSG
+  exit 1
+fi
 
-IMAGE="${REPO}:${TAG}"
+IMAGE_REF="${REPO}:${TAG}"
 
-echo "Building image $IMAGE from $APP_DIR"
-docker build -t "$IMAGE" "$APP_DIR"
+if ! kind get clusters | grep -qx "$CLUSTER_NAME"; then
+  echo "kind cluster '$CLUSTER_NAME' not found. Create it with scripts/setup_kind.sh first." >&2
+  exit 1
+fi
 
-echo "Loading image into kind cluster '$CLUSTER_NAME'"
-kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
+log "Building Docker image ${IMAGE_REF} from ${APP_DIR}"
+docker build -t "$IMAGE_REF" "$APP_DIR"
 
-echo "Image loaded into kind. If your Helm values point to $IMAGE, ArgoCD should be able to deploy it from the node-local image store."
+log "Loading image into kind cluster '$CLUSTER_NAME'"
+kind load docker-image "$IMAGE_REF" --name "$CLUSTER_NAME"
+
+log "Loaded $IMAGE_REF into kind. Trigger an ArgoCD sync or run 'kubectl rollout restart deployment/myapp -n gitops' to use the new image."

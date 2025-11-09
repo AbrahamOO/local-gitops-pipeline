@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/abrahamoo/local-gitops-pipeline.git
-    path: helm/myapp_fixed
+    path: helm/myapp
     targetRevision: main
     helm:
       valueFiles:
