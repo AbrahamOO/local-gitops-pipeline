@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_GITHUB_USERNAME/local-gitops-pipeline.git
+    repoURL: https://github.com/AbrahamOO/local-gitops-pipeline.git
     path: helm/myapp
     targetRevision: main
     helm:
