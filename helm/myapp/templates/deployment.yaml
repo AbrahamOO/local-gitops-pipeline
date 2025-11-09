@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{- if .Values.image.digest }}"{{ .Values.image.repository }}@{{ .Values.image.digest }}"{{- else }}"{{ .Values.image.repository }}:{{ .Values.image.tag }}"{{- end }}
           ports:
             - containerPort: 8000

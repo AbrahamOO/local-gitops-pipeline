@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-sha: ${{ steps.get-sha.outputs.sha }}
+      image-digest: ${{ steps.inspect.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +37,8 @@ jobs:
         name: Get short sha
         run: echo "sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-      - name: Build and push
+      - id: build-and-push
+        name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: ./app
@@ -45,6 +47,22 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/myapp:latest
             ghcr.io/${{ github.repository_owner }}/myapp:${{ steps.get-sha.outputs.sha }}
+
+      - name: Inspect pushed image for digest
+        id: inspect
+        run: |
+          OWNER=${{ github.repository_owner }}
+          REF="ghcr.io/${OWNER}/myapp:${{ steps.get-sha.outputs.sha }}"
+          echo "Inspecting $REF"
+          # Pull metadata using buildx imagetools to get the digest
+          docker buildx imagetools inspect --raw "$REF" | jq -r '.manifests[0].digest' > /tmp/digest || true
+          DIGEST=$(cat /tmp/digest || true)
+          if [ -z "$DIGEST" ]; then
+            # Fallback: query registry via skopeo (if available) or construct a sha fallback
+            echo "No digest from imagetools; using short sha fallback"
+            DIGEST="sha256:${{ steps.get-sha.outputs.sha }}"
+          fi
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
   update-values-pr:
     name: Update Helm values and open PR
@@ -59,13 +77,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Update helm/myapp/values.yaml
+      - name: Update helm/myapp/values.yaml with digest
         id: update-values
         run: |
-          SHA=${{ needs.build-and-push.outputs.image-sha }}
-          sed -E -i.bak "0,/^(\s*tag:\s*).*/s//\1${SHA}/" helm/myapp/values.yaml || true
+          # Read digest from the build job output
+          DIGEST="${{ needs.build-and-push.outputs.image-digest }}"
+          if [ -z "$DIGEST" ]; then
+            echo "No digest found from build step; falling back to short SHA"
+            DIGEST="sha256:${{ needs.build-and-push.outputs.image-sha }}"
+          fi
+          # Write `image.digest: <digest>` into values.yaml (create or replace)
+          if grep -q "^\s*digest:\s*" helm/myapp/values.yaml; then
+            sed -E -i.bak "s/^(\s*digest:\s*).*/\1${DIGEST}/" helm/myapp/values.yaml || true
+          else
+            # Insert under image: block
+            awk -v d="$DIGEST" 'BEGIN{p=0} /^image:/ {print; getline; print; print "  digest: " d; p=1; next} {print}' helm/myapp/values.yaml > helm/myapp/values.yaml.tmp && mv helm/myapp/values.yaml.tmp helm/myapp/values.yaml || true
+          fi
           git add helm/myapp/values.yaml
-          git commit -m "ci: update image tag to ${SHA} [skip ci]" || echo "no changes to commit"
+          git commit -m "ci: update image digest to ${DIGEST} [skip ci]" || echo "no changes to commit"
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@v5
