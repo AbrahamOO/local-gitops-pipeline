@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 env:
-  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}/myapp
+  IMAGE_REPO: ghcr.io/${{ toLower(github.repository_owner) }}/myapp
 
 jobs:
   build-and-push:
