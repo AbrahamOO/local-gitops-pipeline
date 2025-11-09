@@ -1,9 +1,8 @@
 name: Publish image to GHCR (clean)
-name: Publish image to GHCR (clean)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -70,8 +69,8 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "ci: update helm image tag to ${{ needs.build.outputs.image-sha }}"
-          title: "chore: bump image tag to ${{ needs.build.outputs.image-sha }}"
-          body: "Automated image tag update from CI"
+          commit-message: 'ci: update helm image tag to ${{ needs.build.outputs.image-sha }}'
+          title: 'chore: bump image tag to ${{ needs.build.outputs.image-sha }}'
+          body: 'Automated image tag update from CI'
           base: main
           branch: update-image-${{ needs.build.outputs.image-sha }}

@@ -1,3 +1,6 @@
+name: publish-ghcr.clean (backup)
+
+# Backup copy of publish-ghcr.yml.clean
 name: publish-ghcr (backup)
 
 # Backup of publish-ghcr.yml.clean

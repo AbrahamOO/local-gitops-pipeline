@@ -1,3 +1,6 @@
+name: publish-ghcr.tmp (backup)
+
+# Backup copy of publish-ghcr.yml.tmp
 name: publish-ghcr (tmp backup)
 
 # Backup of publish-ghcr.yml.tmp

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: myapp
+version: 0.1.0
+description: A clean copy of the myapp Helm chart for deployment while we fix templates
