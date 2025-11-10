@@ -5,9 +5,9 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/YOUR_GH_USERNAME/myapp
-  tag: latest
+  tag: ebde648c
   pullPolicy: IfNotPresent
-  digest: ""
+  digest: sha256:a0bacf8e5dee378614e83bc7575105967af26979b908a6b7d2a855bf6a82c8cf
 
 service:
   type: ClusterIP
