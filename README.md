@@ -30,7 +30,7 @@ Install missing tools (Homebrew/Chocolatey or your distro’s package manager wo
 If you have not pulled the code yet, run:
 
 ```bash
-git clone <this repo>
+git clone <repository-url>
 cd local-gitops-pipeline
 ```
 
