@@ -27,7 +27,7 @@ Install missing tools (Homebrew/Chocolatey or your distro’s package manager wo
 
 ### 2. Clone this repository
 
-If you have not pulled the code yet, run:
+If you have not cloned the code yet, run:
 
 ```bash
 git clone <repository-url>
