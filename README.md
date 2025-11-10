@@ -34,7 +34,7 @@ git clone <repository-url>
 cd local-gitops-pipeline
 ```
 
-> Working on the FastAPI app outside of Docker? Create a virtual env and install dependencies:
+> Working on the FastAPI app outside of Docker? Create a virtual environment and install dependencies:
 >
 > ```bash
 > python3 -m venv .venv
