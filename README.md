@@ -25,7 +25,25 @@ Install missing tools (Homebrew/Chocolatey or your distro’s package manager wo
 
 ---
 
-### 2. Open the project folder
+### 2. Clone this repository
+
+If you have not pulled the code yet, run:
+
+```bash
+git clone https://github.com/YOUR_GITHUB_USERNAME/local-gitops-pipeline.git
+cd local-gitops-pipeline
+```
+
+> Working on the FastAPI app outside of Docker? Create a virtual env and install dependencies:
+>
+> ```bash
+> python3 -m venv .venv
+> source .venv/bin/activate
+> pip install -r app/requirements.txt
+> uvicorn app.main:app --reload
+> ```
+
+### 3. Open the project folder
 
 ```
 File → Open Folder → local-gitops-pipeline
@@ -35,7 +53,7 @@ Open the VS Code terminal (`Ctrl + \``). Every command below assumes you run it
 
 ---
 
-### 3. Bootstrap Kind and Argo CD
+### 4. Bootstrap Kind and Argo CD
 
 ```bash
 bash scripts/setup_kind.sh
@@ -55,7 +73,7 @@ CLUSTER_NAME=dev-gitops ARGOCD_VERSION=v2.11.3 bash scripts/setup_kind.sh
 
 ---
 
-### 4. Log into Argo CD
+### 5. Log into Argo CD
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
@@ -75,7 +93,7 @@ Leave this port-forward running if you want to monitor syncs.
 
 ---
 
-### 5. Build/push the app image (local registry path)
+### 6. Build/push the app image (local registry path)
 
 ```bash
 docker compose up -d
@@ -96,7 +114,7 @@ image:
 
 ---
 
-### 6. Register the app with Argo CD
+### 7. Register the app with Argo CD
 
 ```bash
 kubectl apply -k manifests/
@@ -106,7 +124,7 @@ This creates the `gitops` namespace and an Argo CD `Application` pointing to `h
 
 ---
 
-### 7. Sync and verify
+### 8. Sync and verify
 
 In the Argo CD dashboard: **myapp → Sync**. Argo will clone this repo, render the Helm chart, and apply it to the `gitops` namespace.
 
@@ -120,7 +138,7 @@ You are looking for `READY 1/1` and `STATUS Running`.
 
 ---
 
-### 8. Reach the FastAPI service
+### 9. Reach the FastAPI service
 
 The service name follows the `<release>-<chart>` pattern (`myapp-myapp`). Port-forward it:
 
@@ -137,7 +155,7 @@ Expected response:
 
 ---
 
-### 9. Reproduce the CI workflow with `act`
+### 10. Reproduce the CI workflow with `act`
 
 GitHub’s hosted runners already have everything we need, but running the workflow locally requires a compatible image. Build it once:
 
@@ -161,7 +179,7 @@ What happens:
 
 ---
 
-### 10. Practice the GitOps loop
+### 11. Practice the GitOps loop
 
 1. Modify `app/main.py` (change the greeting text, add a new endpoint—anything visible).
 2. Rebuild/push the image (or run `scripts/load-image-into-kind.sh`).
@@ -169,7 +187,7 @@ What happens:
 
 ---
 
-### 11. Frequently asked questions
+### 12. Frequently asked questions
 
 **Q: Do I have to use `localhost:5000`?**  
 A: No. Point `helm/myapp/values.yaml` to any registry you control (Docker Hub, GHCR, Harbor, etc.). Just remember to push the image there and, if needed, configure imagePullSecrets.
@@ -185,7 +203,7 @@ A: GitHub-hosted runners for Ubuntu jobs are amd64. Matching that architecture l
 
 ---
 
-### 12. Troubleshooting
+### 13. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
@@ -205,7 +223,7 @@ kubectl delete namespace gitops --ignore-not-found
 
 ---
 
-### 13. Command cheat sheet
+### 14. Command cheat sheet
 
 ```bash
 # Build + push app
@@ -225,7 +243,7 @@ kubectl get pods -n gitops -w
 
 ---
 
-### 14. Keep exploring
+### 15. Keep exploring
 
 1. Wire Argo CD notifications (Slack, Teams, or Discord).
 2. Add Prometheus + Grafana via Helm for visibility.
