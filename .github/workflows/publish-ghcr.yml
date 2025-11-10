@@ -1,0 +1,121 @@
+name: Publish image to GHCR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  build-and-push:
+    if: ${{ github.actor != 'nektos/act' }}
+    name: Build and push image
+    runs-on: ubuntu-latest
+    outputs:
+      image-sha: ${{ steps.get-sha.outputs.sha }}
+      image-digest: ${{ steps.inspect.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: image-repo
+        name: Derive lowercase image repository
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "value=ghcr.io/${owner}/myapp" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - id: get-sha
+        name: Get short sha
+        run: echo "sha=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - id: build-and-push
+        name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ steps.image-repo.outputs.value }}:latest
+            ${{ steps.image-repo.outputs.value }}:${{ steps.get-sha.outputs.sha }}
+
+      - name: Inspect pushed image for digest
+        id: inspect
+        run: |
+          REF="${{ steps.image-repo.outputs.value }}:${{ steps.get-sha.outputs.sha }}"
+          echo "Inspecting $REF"
+          DIGEST=$(docker buildx imagetools inspect --raw "$REF" 2>/dev/null | jq -r '.manifests[0].digest // empty')
+          if [ -z "$DIGEST" ]; then
+            DIGEST=$(docker buildx imagetools inspect "$REF" --format '{{.Descriptor.Digest}}' 2>/dev/null | tr -d '\n')
+          fi
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            echo "Unable to resolve digest for $REF"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+  update-values-pr:
+    if: ${{ github.actor != 'nektos/act' }}
+    name: Update Helm values and open PR
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update helm/myapp/values.yaml
+        env:
+          SHA: ${{ needs.build-and-push.outputs.image-sha }}
+          DIGEST: ${{ needs.build-and-push.outputs.image-digest }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DIGEST" ]; then
+            echo "Image digest output is empty"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import pathlib, re, os
+          path = pathlib.Path("helm/myapp/values.yaml")
+          text = path.read_text()
+          tag = os.environ["SHA"]
+          digest = os.environ["DIGEST"]
+          text = re.sub(r'(^\s*tag:\s*).+$', r'\g<1>' + tag, text, flags=re.MULTILINE)
+          text = re.sub(r'(^\s*digest:\s*).+$', r'\g<1>' + digest, text, flags=re.MULTILINE)
+          path.write_text(text)
+          PY
+          git add helm/myapp/values.yaml
+          git commit -m "ci: update image metadata to ${DIGEST} [skip ci]" || echo "no changes to commit"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'ci: update helm image tag to ${{ needs.build-and-push.outputs.image-sha }}'
+          title: 'chore: bump image tag to ${{ needs.build-and-push.outputs.image-sha }}'
+          body: 'Automated image tag update from CI'
+          base: main
+          branch: update-image-${{ needs.build-and-push.outputs.image-sha }}

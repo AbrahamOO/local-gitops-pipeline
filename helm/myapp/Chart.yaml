@@ -1,0 +1,5 @@
+apiVersion: v2
+name: myapp
+version: 0.2.0
+description: A FastAPI sample deployed via ArgoCD
+appVersion: "1.0.0"

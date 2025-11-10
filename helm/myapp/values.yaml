@@ -1,0 +1,19 @@
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ghcr.io/YOUR_GH_USERNAME/myapp
+  tag: latest
+  pullPolicy: IfNotPresent
+  digest: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
